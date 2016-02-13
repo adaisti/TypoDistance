@@ -15,7 +15,9 @@ public class Main {
     
     public static void main(String[] args) {
         EditDistance ed = new EditDistance();
-        ed.ukkonen("atruct", "datastructure", 1);
+        ed.ukkonen("atruct", "datastructure", 2);
+        ed.ukkonen("ztruct", "datastructure", 2);
+        ed.ukkonen("otruct", "datastructure", 2);
         
     }
     
