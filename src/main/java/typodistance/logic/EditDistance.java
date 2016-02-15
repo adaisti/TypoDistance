@@ -11,27 +11,19 @@ package typodistance.logic;
  */
 public class EditDistance {
 
-    
+    int[] movesRight;
     
     public EditDistance() {
     }
     
-    
-    
-//    fori←0  to m do di0←i(
-//           (2)forj←1  to n do d0j←j
-//            (3)forj←1  to n do
-//            (4)fori←1  to m do
-//            (5)dij←min{di−1,j−1+δ(A[i],B[j]),di−1,j+ 1,di,j−1+ 1}
-//    (6)returndmn
-    
     public int ed(String pattern, String text) {
+        
          
         int n = pattern.length();
         int m = text.length();
         
         int[][] d = new int[n + 1][m + 1];
-        
+                
         for (int i = 0; i <= n; i++) {
             d[i][0] = i;
         }
@@ -46,19 +38,48 @@ public class EditDistance {
                 char p = pattern.charAt(i - 1);
                 char t = text.charAt(j - 1);
                 
-                d[i][j] = minimum(d, i, j, p, t);
-                        
-                        
-                
+                d[i][j] = minimum(d, i, j, p, t);    
+
             }
         }
         
+//        for (int i = 0; i <= n; i++) {
+//            for (int j = 0; j <= m; j++) {
+//                System.out.print(d[i][j]);
+//            }
+//            System.out.println("");
+//        }
+        
+        return d[n][m];
+    }
+    
+    public int typoDist(String pattern, String text) {
+        
+         
+        int n = pattern.length();
+        int m = text.length();
+        
+        int[][] d = new int[n + 1][m + 1];
+                
         for (int i = 0; i <= n; i++) {
-            for (int j = 0; j <= m; j++) {
-                System.out.print(d[i][j]);
-            }
-            System.out.println("");
+            d[i][0] = i;
         }
+        
+        for (int i = 1; i <= m; i++) {
+            d[0][i] = i;
+        }
+        
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                
+                char p = pattern.charAt(i - 1);
+                char t = text.charAt(j - 1);
+                
+                d[i][j] = typoMinimum(d, i, j, p, t, pattern, text);    
+
+            }
+        }
+        
         
         return d[n][m];
     }
@@ -66,11 +87,16 @@ public class EditDistance {
     
     public int[] ukkonen(String pattern, String text, int k) {
         
-        
         int m = pattern.length();
         int n = text.length();
-        int[] occurences = new int[100000];
+        int[] occurences = new int[m + 1];
         int occurenceIndex = 0;
+        
+        movesRight = new int[m + 1];
+        
+        for (int i = 0; i < m + 1; i++) {
+            movesRight[i] = 0;
+        }
 
         int top = Math.min(k + 1, m);
         
@@ -90,8 +116,7 @@ public class EditDistance {
                 char p = pattern.charAt(i - 1);
                 char t = text.charAt(j - 1);
                 
-//                d[i][j] = minimum(d, i, j, p, t);
-                d[i][j] = typoMinimum(d, i, j, p, t, pattern, text);
+                d[i][j] = minimum(d, i, j, p, t);
                 
             }
             while (d[top][j] > k) {
@@ -109,16 +134,81 @@ public class EditDistance {
         
         for (int i = 0; i <= m; i++) {
             for (int j = 0; j <= n; j++) {
-                System.out.print(d[i][j]);
+//                System.out.print(d[i][j]);
             }
-            System.out.println("");
+//            System.out.println("");
         }
+        
+       
         
         for (int i = 0; i < occurenceIndex; i++) {
-            System.out.print(occurences[i] + " ");
+//            System.out.print(occurences[i] + " ");
+            System.out.println(text.substring(occurences[i] - (pattern.length() - movesRight[i]), occurences[i]));
         }
         
-        System.out.println(occurence(d, occurences, pattern));
+        
+        return occurences;
+    }
+    
+    public int[] typoUkkonen(String pattern, String text, int k) {
+        
+        int m = pattern.length();
+        int n = text.length();
+        int[] occurences = new int[m + 1];
+        int occurenceIndex = 0;
+        
+        movesRight = new int[m + 1];
+        
+        for (int i = 0; i < m + 1; i++) {
+            movesRight[i] = 0;
+        }
+
+        int top = Math.min(k + 1, m);
+        
+        int[][] d = new int[m + 1][n + 1];
+        
+        for (int i = 0; i <= top; i++) {
+            d[i][0] = i;
+        }
+        
+        for (int i = 1; i <= n; i++) {
+            d[0][i] = 0;
+        }
+        
+        for (int j = 1; j <= n; j++) {
+            for (int i = 1; i <= top; i++) {
+                
+                char p = pattern.charAt(i - 1);
+                char t = text.charAt(j - 1);
+                
+                d[i][j] = typoMinimum(d, i, j, p, t, pattern, text);
+                
+            }
+            while (d[top][j] > k) {
+                    top--;
+                }
+                
+                if (top == m) {
+                    occurences[occurenceIndex] = j;
+                    occurenceIndex++;
+                } else {
+                    top++;
+                    d[top][j] = k + 1;
+                }
+        }
+        
+//        for (int i = 0; i <= m; i++) {
+//            for (int j = 0; j <= n; j++) {
+//                System.out.print(d[i][j]);
+//            }
+//            System.out.println("");
+//        }
+        
+        for (int i = 0; i < occurenceIndex; i++) {
+//            System.out.print(occurences[i] + " ");
+            System.out.println(text.substring(occurences[i] - (pattern.length() - movesRight[i]), occurences[i]));
+        }
+        
         
         return occurences;
     }
@@ -375,9 +465,9 @@ public class EditDistance {
         
         // i: index in pattern, j: index in text
         
-        int diag = d[i - 1][j - 1] + levenhsteinDelta(p, t);
-        int right = d[i][j - 1] + 1;    //common typo: one letter missing
-        int down = d[i - 1][j] + involuntaryDoubleLetter(i, j, text, pattern); 
+        int diag = d[i - 1][j - 1] + typoDelta(p, t);
+        int down = d[i][j - 1] + 1;    //common typo: one letter missing
+        int right = d[i - 1][j] + involuntaryDoubleLetter(i, j, text, pattern); 
         
         if (diag <= down) {
             if (diag <= right) {
@@ -386,16 +476,20 @@ public class EditDistance {
         }
         
         if (down < right) {
+            System.out.println(p + " " + t + " down");
+            movesRight[i] = movesRight[i] - 1;
             return down;
         }
+        movesRight[i] = movesRight[i] + 1;
+        System.out.println(p + " " + t + " right");
         return right;
     }
 
     public int minimum(int[][] d, int i, int j, char p, char t) {
         
         int diag = d[i - 1][j - 1] + levenhsteinDelta(p, t);
-        int right = d[i][j - 1] + 1;
-        int down = d[i - 1][j] + 1;
+        int down = d[i][j - 1] + 1;
+        int right = d[i - 1][j] + 1;
         
         if (diag <= down) {
             if (diag <= right) {
@@ -404,45 +498,20 @@ public class EditDistance {
         }
         
         if (down < right) {
+            movesRight[i] = movesRight[i] - 1;
             return down;
         }
+        movesRight[i] = movesRight[i] + 1;
         return right;
     }
     
-    
-    public String[] occurence(int[][] d, int[] occs, String pattern) {
-                //i: index in pattern
-        String[] occurences = new String[occs.length];
-
-        for (int occ = 0; occ < occs.length; occ++) {
-            
-            int occurenceLength = 0;
-            int occurenceIndex = occs[occ];
-            int i = occs[occ];
-            int j = d.length;
-            
-            while (i > 0 && j > 0) {
-                if (d[i - 1][j] < d[i - 1][j - 1] && d[i - 1][j] < d[i][j - 1]) {
-                    j--;
-                } else {
-                    occurenceLength++;
-                    if (d[i - 1][j] < d[i - 1][j - 1]) {
-                        i--;
-                    } else {
-                        j--;
-                        i--;
-                    }
-                }
-            }
-            occurences[occ] = pattern.substring(occurenceIndex - occurenceLength, occurenceIndex + 1);
-            
-        }
-        
-        return occurences;
-    }
-
     private int involuntaryDoubleLetter(int i, int j, String text, String pattern) {
-        if (text.charAt(j) == text.charAt(j - 1) && pattern.charAt(i - 1) == text.charAt(j - 1)) {
+
+        if(i == pattern.length()) {
+//            System.out.println(i);
+            return 3;
+        }
+        if (pattern.charAt(i) == pattern.charAt(i - 1) && pattern.charAt(i - 1) == text.charAt(j - 1)) {
             return 1;
         }
         return 3;

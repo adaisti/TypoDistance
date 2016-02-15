@@ -16,8 +16,14 @@ public class Main {
     public static void main(String[] args) {
         EditDistance ed = new EditDistance();
         ed.ukkonen("atruct", "datastructure", 2);
+        System.out.println("--");
         ed.ukkonen("ztruct", "datastructure", 2);
-        ed.ukkonen("otruct", "datastructure", 2);
+        System.out.println("--");
+
+        ed.typoUkkonen("atruct", "datastructure", 2);
+                System.out.println("--");
+
+        ed.typoUkkonen("ztruct", "datastructure", 2);
         
     }
     
