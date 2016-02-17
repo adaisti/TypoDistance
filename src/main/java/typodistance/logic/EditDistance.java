@@ -1,35 +1,43 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package typodistance.logic;
 
 /**
  *
+ * This class has all kinds of methods for calculating the Levenhstein
+ * edit distance and the weighted typo optimized distance.
+ * 
  * @author Ada
  */
 public class EditDistance {
-
-    int[] movesRight;
     
     public EditDistance() {
     }
     
+    /**
+     * 
+     * Levenhstein edit distance calculation. Returns a distance
+     * 3 times bigger than the regular distance in order to be more easily
+     * compared with typoDistance
+     *
+     * 
+     * @param pattern
+     * @param text
+     * @return Levensthein edit distance * 3 between pattern and text
+     */
+    
     public int ed(String pattern, String text) {
-        
          
         int n = pattern.length();
         int m = text.length();
         
-        int[][] d = new int[n + 1][m + 1];
+        Cell[][] d = new Cell[n + 1][m + 1];
                 
         for (int i = 0; i <= n; i++) {
-            d[i][0] = i;
+            d[i][0] = new Cell(i, null, i, 0);
         }
         
         for (int i = 1; i <= m; i++) {
-            d[0][i] = i;
+            d[0][i] = new Cell(i, null, 0, i);
         }
         
         for (int i = 1; i <= n; i++) {
@@ -43,15 +51,17 @@ public class EditDistance {
             }
         }
         
-//        for (int i = 0; i <= n; i++) {
-//            for (int j = 0; j <= m; j++) {
-//                System.out.print(d[i][j]);
-//            }
-//            System.out.println("");
-//        }
-        
-        return d[n][m];
+       
+        return d[n][m].dist * 3;
     }
+    
+    /**
+     * Weighted typo optimized edit distance
+     * 
+     * @param pattern
+     * @param text
+     * @return typo distance between pattern and text
+     */
     
     public int typoDist(String pattern, String text) {
         
@@ -59,14 +69,14 @@ public class EditDistance {
         int n = pattern.length();
         int m = text.length();
         
-        int[][] d = new int[n + 1][m + 1];
+        Cell[][] d = new Cell[n + 1][m + 1];
                 
         for (int i = 0; i <= n; i++) {
-            d[i][0] = i;
+            d[i][0] = new Cell(i, null, i, 0);
         }
         
         for (int i = 1; i <= m; i++) {
-            d[0][i] = i;
+            d[0][i] = new Cell(i, null, 0, i);
         }
         
         for (int i = 1; i <= n; i++) {
@@ -81,33 +91,37 @@ public class EditDistance {
         }
         
         
-        return d[n][m];
+        return d[n][m].dist;
     }
     
+    /**
+     * 
+     * Ukkonen's cut-off algorithm
+     * 
+     * @param pattern
+     * @param text
+     * @param k
+     * @return String table of occurences in pattern with k mismatches
+     */
     
-    public int[] ukkonen(String pattern, String text, int k) {
+    
+    public String[] ukkonen(String pattern, String text, int k) {
         
         int m = pattern.length();
         int n = text.length();
-        int[] occurences = new int[m + 1];
+        int[] occurences = new int[n + 1];
         int occurenceIndex = 0;
         
-        movesRight = new int[m + 1];
-        
-        for (int i = 0; i < m + 1; i++) {
-            movesRight[i] = 0;
-        }
-
         int top = Math.min(k + 1, m);
         
-        int[][] d = new int[m + 1][n + 1];
+        Cell[][] d = new Cell[m + 1][n + 1];
         
         for (int i = 0; i <= top; i++) {
-            d[i][0] = i;
+            d[i][0] = new Cell(i, null, i, 0);
         }
         
         for (int i = 1; i <= n; i++) {
-            d[0][i] = 0;
+            d[0][i] = new Cell(0, null, 0, i);
         }
         
         for (int j = 1; j <= n; j++) {
@@ -119,7 +133,7 @@ public class EditDistance {
                 d[i][j] = minimum(d, i, j, p, t);
                 
             }
-            while (d[top][j] > k) {
+            while (d[top][j].dist > k) {
                     top--;
                 }
                 
@@ -128,51 +142,46 @@ public class EditDistance {
                     occurenceIndex++;
                 } else {
                     top++;
-                    d[top][j] = k + 1;
+                    d[top][j] = new Cell(k + 1, d[top - 1][j], top, j);
                 }
         }
         
-        for (int i = 0; i <= m; i++) {
-            for (int j = 0; j <= n; j++) {
-//                System.out.print(d[i][j]);
-            }
-//            System.out.println("");
-        }
-        
-       
+        String results[] = new String[occurenceIndex];
         
         for (int i = 0; i < occurenceIndex; i++) {
-//            System.out.print(occurences[i] + " ");
-            System.out.println(text.substring(occurences[i] - (pattern.length() - movesRight[i]), occurences[i]));
+            results[i] = alignment(occurences[i], d, text);
         }
         
-        
-        return occurences;
+        return results;
     }
     
-    public int[] typoUkkonen(String pattern, String text, int k) {
+    /**
+     * 
+     * Ukkonen's cut-off algorithm with weighted typo optimized edit distances
+     * 
+     * @param pattern
+     * @param text
+     * @param k
+     * @return String table of occurences in pattern with k mismatches
+     */
+    
+    public String[] typoUkkonen(String pattern, String text, int k) {
         
         int m = pattern.length();
         int n = text.length();
-        int[] occurences = new int[m + 1];
+        int[] occurences = new int[n + 1];
         int occurenceIndex = 0;
         
-        movesRight = new int[m + 1];
-        
-        for (int i = 0; i < m + 1; i++) {
-            movesRight[i] = 0;
-        }
-
         int top = Math.min(k + 1, m);
         
-        int[][] d = new int[m + 1][n + 1];
+        Cell[][] d = new Cell[m + 1][n + 1];
         
         for (int i = 0; i <= top; i++) {
-            d[i][0] = i;
+            d[i][0] = new Cell (i, null, i, 0);
         }
         
         for (int i = 1; i <= n; i++) {
-            d[0][i] = 0;
+            d[0][i] = new Cell (0, null, 0, i);
         }
         
         for (int j = 1; j <= n; j++) {
@@ -184,7 +193,7 @@ public class EditDistance {
                 d[i][j] = typoMinimum(d, i, j, p, t, pattern, text);
                 
             }
-            while (d[top][j] > k) {
+            while (d[top][j].dist > k) {
                     top--;
                 }
                 
@@ -193,25 +202,25 @@ public class EditDistance {
                     occurenceIndex++;
                 } else {
                     top++;
-                    d[top][j] = k + 1;
+                    d[top][j] = new Cell(k + 1, d[top - 1][j], top, j);
                 }
         }
         
-//        for (int i = 0; i <= m; i++) {
-//            for (int j = 0; j <= n; j++) {
-//                System.out.print(d[i][j]);
-//            }
-//            System.out.println("");
-//        }
+        String results[] = new String[occurenceIndex];
         
         for (int i = 0; i < occurenceIndex; i++) {
-//            System.out.print(occurences[i] + " ");
-            System.out.println(text.substring(occurences[i] - (pattern.length() - movesRight[i]), occurences[i]));
+            results[i] = alignment(occurences[i], d, text);
         }
         
-        
-        return occurences;
+        return results;
     }
+    
+    /**
+     * Levenhstein edit distance between two characters.
+     * @param a
+     * @param b
+     * @return distance between a and b.
+     */
     
     public int levenhsteinDelta(char a, char b) {
         if (a == b) {
@@ -219,6 +228,13 @@ public class EditDistance {
         }
         return 1;
     }
+    
+    /**
+     * Weighted edit distance between two characters, based on a Finnish QWERTY keyboard.
+     * @param a
+     * @param b
+     * @return distance between a and b.
+     */
     
     public int typoDelta(char a, char b) {
         
@@ -461,54 +477,133 @@ public class EditDistance {
         return 3;
     }
     
-    public int typoMinimum(int[][] d, int i, int j, char p, char t, String pattern, String text) {
+    /**
+     * 
+     * Calculates the minimal weighted typo distance for the cells in the dynamic programming matrix.
+     * 
+     * @param d
+     * @param i
+     * @param j
+     * @param p
+     * @param t
+     * @param pattern
+     * @param text
+     * @return Cell with the minimal typo distance
+     */
+    
+    public Cell typoMinimum(Cell[][] d, int i, int j, char p, char t, String pattern, String text) {
+                
+        int diag = d[i - 1][j - 1].dist + typoDelta(p, t);
+        int down = d[i][j - 1].dist + 1;    //common typo: one letter missing
+        int right = d[i - 1][j].dist + involuntaryDoubleLetter(i, j, text, pattern); 
         
-        // i: index in pattern, j: index in text
         
-        int diag = d[i - 1][j - 1] + typoDelta(p, t);
-        int down = d[i][j - 1] + 1;    //common typo: one letter missing
-        int right = d[i - 1][j] + involuntaryDoubleLetter(i, j, text, pattern); 
+        if (i >= 2 && j >= 2) {
+            
+            //Damerau distance
+            
+            if (pattern.charAt(i - 1) == t && text.charAt(j - 1) == p) {
+                int dam = d[i - 2][j - 2].dist + 1;
+                if (diag >= dam && down >= dam && right >= dam) {
+                    return new Cell(dam, d[i - 2][j - 2], i, j);
+                } 
+            }
+        }
         
         if (diag <= down) {
             if (diag <= right) {
-                return diag;
+                return new Cell(diag, d[i - 1][j - 1], i, j);
             }   
         }
         
         if (down < right) {
-            System.out.println(p + " " + t + " down");
-            movesRight[i] = movesRight[i] - 1;
-            return down;
+            return new Cell(down, d[i][j - 1], i, j);
         }
-        movesRight[i] = movesRight[i] + 1;
-        System.out.println(p + " " + t + " right");
-        return right;
-    }
-
-    public int minimum(int[][] d, int i, int j, char p, char t) {
-        
-        int diag = d[i - 1][j - 1] + levenhsteinDelta(p, t);
-        int down = d[i][j - 1] + 1;
-        int right = d[i - 1][j] + 1;
-        
-        if (diag <= down) {
-            if (diag <= right) {
-                return diag;
-            }   
-        }
-        
-        if (down < right) {
-            movesRight[i] = movesRight[i] - 1;
-            return down;
-        }
-        movesRight[i] = movesRight[i] + 1;
-        return right;
+        return new Cell(right, d[i - 1][j], i, j);
     }
     
-    private int involuntaryDoubleLetter(int i, int j, String text, String pattern) {
+    /**
+     * 
+     * Calculates the minimal distance for the cells in the dynamic programming matrix.
+     * 
+     * @param d
+     * @param i
+     * @param j
+     * @param p
+     * @param t
+     * @return Cell with the minimal distance
+     */
 
+    public Cell minimum(Cell[][] d, int i, int j, char p, char t) {
+        
+        int diag = d[i - 1][j - 1].dist + levenhsteinDelta(p, t);
+        int down = d[i][j - 1].dist + 1;
+        int right = d[i - 1][j].dist + 1;
+        
+        if (diag <= down) {
+            if (diag <= right) {
+                return new Cell(diag, d[i - 1][j - 1], i, j);
+            }   
+        }
+        
+        if (down < right) {
+            return new Cell(down, d[i][j - 1], i, j);
+        }
+        return new Cell(right, d[i - 1][j], i, j);
+    }
+    
+    /**
+     * Searches for the occurence (with k mismatches) of the pattern 
+     * in the text by finding the path
+     * of minima in the dynamic programmin matrix.
+     * 
+     * @param index
+     * @param d
+     * @param text
+     * @return occurence in text
+     */
+    
+    public String alignment(int index, Cell[][] d, String text) {
+        int last = index;
+        
+        Cell prev = d[d.length - 1][index];
+        
+        if (prev == null) {
+            return text;
+        }
+        
+        while (prev.j != 0 && prev.i != 0) {
+            if (prev.prev == null) {
+                break;
+            }
+            prev = prev.prev;
+            
+        }
+        
+        int first = prev.j;
+        
+        return text.substring(first, last);
+        
+    }
+    
+    /**
+     * Weights a double letter with a lower weight than a non-double letter
+     * 
+     * @param i
+     * @param j
+     * @param text
+     * @param pattern
+     * @return 1 if double letter, else 3
+     */
+    
+    
+    public int involuntaryDoubleLetter(int i, int j, String text, String pattern) {
+
+        if (i < 1 || j < 1) {
+            return 3;
+        }
+        
         if(i == pattern.length()) {
-//            System.out.println(i);
             return 3;
         }
         if (pattern.charAt(i) == pattern.charAt(i - 1) && pattern.charAt(i - 1) == text.charAt(j - 1)) {
