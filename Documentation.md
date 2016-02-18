@@ -26,4 +26,4 @@ The typo distance calculations does a constant amount of operations per each cal
 
 # Correctness tests
 
-The correctness of the algorith was tested with some basic JUnit tests (to be found in the tests folder). Some speed tests will follow for statistics in the project poster.
+The correctness of the algorith was tested with some basic JUnit tests (to be found in the tests folder). 
