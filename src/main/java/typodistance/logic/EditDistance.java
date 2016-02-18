@@ -90,9 +90,47 @@ public class EditDistance {
             }
         }
         
+        return d[n][m].dist;
+    }
+    
+    /**
+     * Weighted typo optimized edit distance
+     * 
+     * @param pattern
+     * @param text
+     * @return typo distance between pattern and text
+     */
+    
+    public int nonMetricTypoDist(String pattern, String text) {
+        
+         
+        int n = pattern.length();
+        int m = text.length();
+        
+        Cell[][] d = new Cell[n + 1][m + 1];
+                
+        for (int i = 0; i <= n; i++) {
+            d[i][0] = new Cell(i, null, i, 0);
+        }
+        
+        for (int i = 1; i <= m; i++) {
+            d[0][i] = new Cell(i, null, 0, i);
+        }
+        
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                
+                char p = pattern.charAt(i - 1);
+                char t = text.charAt(j - 1);
+                
+                d[i][j] = nonMetricTypoMinimum(d, i, j, p, t, pattern, text);    
+
+            }
+        }
         
         return d[n][m].dist;
     }
+    
     
     /**
      * 
@@ -166,6 +204,67 @@ public class EditDistance {
      */
     
     public String[] typoUkkonen(String pattern, String text, int k) {
+        
+        int m = pattern.length();
+        int n = text.length();
+        int[] occurences = new int[n + 1];
+        int occurenceIndex = 0;
+        
+        int top = Math.min(k + 1, m);
+        
+        Cell[][] d = new Cell[m + 1][n + 1];
+        
+        for (int i = 0; i <= top; i++) {
+            d[i][0] = new Cell (i, null, i, 0);
+        }
+        
+        for (int i = 1; i <= n; i++) {
+            d[0][i] = new Cell (0, null, 0, i);
+        }
+        
+        for (int j = 1; j <= n; j++) {
+            for (int i = 1; i <= top; i++) {
+                
+                char p = pattern.charAt(i - 1);
+                char t = text.charAt(j - 1);
+                
+                d[i][j] = typoMinimum(d, i, j, p, t, pattern, text);
+                
+            }
+            while (d[top][j].dist > k) {
+                    top--;
+                }
+                
+                if (top == m) {
+                    occurences[occurenceIndex] = j;
+                    occurenceIndex++;
+                } else {
+                    top++;
+                    d[top][j] = new Cell(k + 1, d[top - 1][j], top, j);
+                }
+        }
+        
+        String results[] = new String[occurenceIndex];
+        
+        for (int i = 0; i < occurenceIndex; i++) {
+            results[i] = alignment(occurences[i], d, text);
+        }
+        
+        return results;
+    }
+    
+    /**
+     * 
+     * Ukkonen's cut-off algorithm with weighted typo optimized edit distances,
+     * with the most optimizations such that the distance is not a metric
+     * 
+     * @param pattern
+     * @param text
+     * @param k
+     * @return String table of occurences in pattern with k mismatches
+     */
+    
+    public String[] nonMetricTypoUkkonen(String pattern, String text, int k) {
         
         int m = pattern.length();
         int n = text.length();
@@ -494,6 +593,53 @@ public class EditDistance {
     public Cell typoMinimum(Cell[][] d, int i, int j, char p, char t, String pattern, String text) {
                 
         int diag = d[i - 1][j - 1].dist + typoDelta(p, t);
+        int down = d[i][j - 1].dist + 3;
+        int right = d[i - 1][j].dist + 3; 
+        
+        
+        if (i >= 2 && j >= 2) {
+            
+            //Damerau distance
+            
+            if (pattern.charAt(i - 1) == t && text.charAt(j - 1) == p) {
+                int dam = d[i - 2][j - 2].dist + 1;
+                if (diag >= dam && down >= dam && right >= dam) {
+                    return new Cell(dam, d[i - 2][j - 2], i, j);
+                } 
+            }
+        }
+        
+        if (diag <= down) {
+            if (diag <= right) {
+                return new Cell(diag, d[i - 1][j - 1], i, j);
+            }   
+        }
+        
+        if (down < right) {
+            return new Cell(down, d[i][j - 1], i, j);
+        }
+        return new Cell(right, d[i - 1][j], i, j);
+    }
+    
+    /**
+     * 
+     * Calculates the minimal weighted notn metric typo distance 
+     * for the cells in the dynamic programming matrix.
+     * 
+     * 
+     * @param d
+     * @param i
+     * @param j
+     * @param p
+     * @param t
+     * @param pattern
+     * @param text
+     * @return Cell with the minimal typo distance
+     */
+    
+    public Cell nonMetricTypoMinimum(Cell[][] d, int i, int j, char p, char t, String pattern, String text) {
+                
+        int diag = d[i - 1][j - 1].dist + typoDelta(p, t);
         int down = d[i][j - 1].dist + 1;    //common typo: one letter missing
         int right = d[i - 1][j].dist + involuntaryDoubleLetter(i, j, text, pattern); 
         
@@ -603,9 +749,12 @@ public class EditDistance {
             return 3;
         }
         
-        if(i == pattern.length()) {
+        if(i == pattern.length() || j == text.length()) {
             return 3;
         }
+//        if (text.charAt(j) == text.charAt(j - 1) && pattern.charAt(i - 1) == text.charAt(j - 1)) {
+//            return 1;
+//        }
         if (pattern.charAt(i) == pattern.charAt(i - 1) && pattern.charAt(i - 1) == text.charAt(j - 1)) {
             return 1;
         }
